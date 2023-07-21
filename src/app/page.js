@@ -15,6 +15,13 @@ export default function Home() {
   const [filteredBooks, setFilteredBooks] = useState(library);
   const [availableBooksCount, setAvailableBooksCount] = useState(library.length);
 
+  useEffect(() => {
+    const storedReadingList = localStorage.getItem("readingList");
+    if (storedReadingList) {
+      setReadingList(JSON.parse(storedReadingList));
+    }
+  }, []);
+
   // Función para filtrar libros por género
   const filterBooksByGenre = (genre) => {
     if (genre === "All") {
@@ -27,18 +34,31 @@ export default function Home() {
 
   useEffect(() => {
     filterBooksByGenre(selectedGenre);
+  }, [selectedGenre]);
+
+  // Actualizar el estado de los libros con la propiedad "read" según su presencia en la lista de lectura
+  useEffect(() => {
+    const updatedLibrary = filteredBooks.map((book) => ({
+      ...book,
+      read: isBookInReadingList(book),
+    }));
+    setFilteredBooks(updatedLibrary);
+
     // Calculamos la cantidad de libros disponibles considerando los que están en la lista de lectura
     const filteredAvailableBooks = filteredBooks.filter(
-      (book) => !readingList.includes(book)
+      (book) => !isBookInReadingList(book)
     );
     setAvailableBooksCount(filteredAvailableBooks.length);
-  }, [selectedGenre, readingList, filteredBooks]);
+  }, [readingList, filteredBooks]);
 
   // Función para agregar un libro a la lista de lectura
   const addToReadingList = (book) => {
     if (!readingList.includes(book)) {
-      setReadingList([...readingList, book]);
+      const updatedList = [...readingList, book];
+      setReadingList(updatedList);
       setAvailableBooksCount((prevCount) => prevCount - 1);
+      // Guardar la lista de lectura actualizada en el localStorage.
+      localStorage.setItem("readingList", JSON.stringify(updatedList));
     }
   };
 
@@ -47,11 +67,13 @@ export default function Home() {
     const updatedList = readingList.filter((item) => item !== book);
     setReadingList(updatedList);
     setAvailableBooksCount((prevCount) => prevCount + 1);
+    // Guardar la lista de lectura actualizada en el localStorage.
+    localStorage.setItem("readingList", JSON.stringify(updatedList));
   };
 
   // Función para verificar si un libro está en la lista de lectura
   const isBookInReadingList = (book) => {
-    return readingList.includes(book);
+    return readingList.some((item) => item.book.title === book.book.title);
   };
 
   // Funciones para manejar el modal
@@ -62,7 +84,6 @@ export default function Home() {
   const closeModal = () => {
     setSelectedBook(null);
   };
-
 
   return (
     <main className="bg-white">
