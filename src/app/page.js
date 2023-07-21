@@ -8,82 +8,99 @@ export default function Home() {
   // Datos de libros importados desde el archivo JSON
   const { library } = booksData;
 
-  // Estados para la página
-  const [readingList, setReadingList] = useState([]);
-  const [selectedBook, setSelectedBook] = useState(null);
-  const [selectedGenre, setSelectedGenre] = useState("All");
-  const [filteredBooks, setFilteredBooks] = useState(library);
-  const [availableBooksCount, setAvailableBooksCount] = useState(library.length);
+// Estados para la página
+const [readingList, setReadingList] = useState([]);
+const [selectedBook, setSelectedBook] = useState(null);
+const [selectedGenre, setSelectedGenre] = useState("All");
+const [filteredBooks, setFilteredBooks] = useState(library);
+const [availableBooksCount, setAvailableBooksCount] = useState(library.length);
 
-  useEffect(() => {
-    const storedReadingList = localStorage.getItem("readingList");
-    if (storedReadingList) {
-      setReadingList(JSON.parse(storedReadingList));
-    }
-  }, []);
+useEffect(() => {
+  const storedReadingList = localStorage.getItem("readingList");
+  if (storedReadingList) {
+    setReadingList(JSON.parse(storedReadingList));
+  }
 
-  // Función para filtrar libros por género
-  const filterBooksByGenre = (genre) => {
-    if (genre === "All") {
-      setFilteredBooks(library);
-    } else {
-      const filtered = library.filter((book) => book.book.genre === genre);
-      setFilteredBooks(filtered);
-    }
+  // Agregar un listener para el evento "storage" que sincronice la lista de lectura
+  window.addEventListener("storage", handleStorageChange);
+
+  // Limpiar el listener al desmontar el componente
+  return () => {
+    window.removeEventListener("storage", handleStorageChange);
   };
+}, []);
 
-  useEffect(() => {
-    filterBooksByGenre(selectedGenre);
-  }, [selectedGenre]);
+// Función para sincronizar la lista de lectura con el almacenamiento local
+const handleStorageChange = (event) => {
+  if (event.key === "readingList") {
+    setReadingList(JSON.parse(event.newValue));
+  }
+};
 
-  // Actualizar el estado de los libros con la propiedad "read" según su presencia en la lista de lectura
-  useEffect(() => {
-    const updatedLibrary = filteredBooks.map((book) => ({
-      ...book,
-      read: isBookInReadingList(book),
-    }));
-    setFilteredBooks(updatedLibrary);
+// Función para filtrar libros por género
+const filterBooksByGenre = (genre) => {
+  if (genre === "All") {
+    setFilteredBooks(library);
+  } else {
+    const filtered = library.filter((book) => book.book.genre === genre);
+    setFilteredBooks(filtered);
+  }
+};
 
-    // Calculamos la cantidad de libros disponibles considerando los que están en la lista de lectura
-    const filteredAvailableBooks = filteredBooks.filter(
-      (book) => !isBookInReadingList(book)
-    );
-    setAvailableBooksCount(filteredAvailableBooks.length);
-  }, [readingList, filteredBooks]);
+useEffect(() => {
+  filterBooksByGenre(selectedGenre);
+}, [selectedGenre]);
 
-  // Función para agregar un libro a la lista de lectura
-  const addToReadingList = (book) => {
-    if (!readingList.includes(book)) {
-      const updatedList = [...readingList, book];
-      setReadingList(updatedList);
-      setAvailableBooksCount((prevCount) => prevCount - 1);
-      // Guardar la lista de lectura actualizada en el localStorage.
-      localStorage.setItem("readingList", JSON.stringify(updatedList));
-    }
-  };
+// Actualizar el estado de los libros con la propiedad "read" según su presencia en la lista de lectura
+useEffect(() => {
+  const updatedLibrary = filteredBooks.map((book) => ({
+    ...book,
+    read: isBookInReadingList(book),
+  }));
+  setFilteredBooks(updatedLibrary);
 
-  // Función para eliminar un libro de la lista de lectura
-  const removeFromReadingList = (book) => {
-    const updatedList = readingList.filter((item) => item !== book);
+  // Calculamos la cantidad de libros disponibles considerando los que están en la lista de lectura
+  const filteredAvailableBooks = filteredBooks.filter(
+    (book) => !isBookInReadingList(book)
+  );
+  setAvailableBooksCount(filteredAvailableBooks.length);
+}, [readingList, filteredBooks]);
+
+// Función para agregar un libro a la lista de lectura
+const addToReadingList = (book) => {
+  if (!readingList.some((item) => item.book.title === book.book.title)) {
+    const updatedList = [...readingList, book];
     setReadingList(updatedList);
-    setAvailableBooksCount((prevCount) => prevCount + 1);
+    setAvailableBooksCount((prevCount) => prevCount - 1);
     // Guardar la lista de lectura actualizada en el localStorage.
     localStorage.setItem("readingList", JSON.stringify(updatedList));
-  };
+  }
+};
 
-  // Función para verificar si un libro está en la lista de lectura
-  const isBookInReadingList = (book) => {
-    return readingList.some((item) => item.book.title === book.book.title);
-  };
+// Función para eliminar un libro de la lista de lectura
+const removeFromReadingList = (book) => {
+  const updatedList = readingList.filter(
+    (item) => item.book.title !== book.book.title
+  );
+  setReadingList(updatedList);
+  setAvailableBooksCount((prevCount) => prevCount + 1);
+  // Guardar la lista de lectura actualizada en el localStorage.
+  localStorage.setItem("readingList", JSON.stringify(updatedList));
+};
 
-  // Funciones para manejar el modal
-  const openModal = (book) => {
-    setSelectedBook(book);
-  };
+// Función para verificar si un libro está en la lista de lectura
+const isBookInReadingList = (book) => {
+  return readingList.some((item) => item.book.title === book.book.title);
+};
 
-  const closeModal = () => {
-    setSelectedBook(null);
-  };
+// Funciones para manejar el modal
+const openModal = (book) => {
+  setSelectedBook(book);
+};
+
+const closeModal = () => {
+  setSelectedBook(null);
+};
 
   return (
     <main className="bg-white">
