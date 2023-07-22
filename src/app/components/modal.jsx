@@ -49,7 +49,7 @@ const Modal = ({ isOpen, closeModal, book }) => {
             <img
               src={book.book.cover}
               alt={book.book.title}
-              className="max-w-48 max-h-48 rounded-xl shadow-lg"
+              className="max-w-48 max-h-48 rounded-xl shadow-customShadow"
             />
             <div className="px-4">
               <h2 className="text-zinc-600 text-2xl font-bold">{book.book.title}</h2>

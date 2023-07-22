@@ -8,119 +8,142 @@ export default function Home() {
   // Datos de libros importados desde el archivo JSON
   const { library } = booksData;
 
-// Estados para la página
-const [readingList, setReadingList] = useState([]);
-const [selectedBook, setSelectedBook] = useState(null);
-const [selectedGenre, setSelectedGenre] = useState("All");
-const [filteredBooks, setFilteredBooks] = useState(library);
-const [availableBooksCount, setAvailableBooksCount] = useState(library.length);
+  // Estados para la página
+  const [readingList, setReadingList] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedGenre, setSelectedGenre] = useState("All");
+  const [filteredBooks, setFilteredBooks] = useState(library);
+  const [availableBooksCount, setAvailableBooksCount] = useState(library.length);
+  const [searchTerm, setSearchTerm] = useState(""); // Nuevo estado para el término de búsqueda
 
-useEffect(() => {
-  const storedReadingList = localStorage.getItem("readingList");
-  if (storedReadingList) {
-    setReadingList(JSON.parse(storedReadingList));
-  }
 
-  // Agregar un listener para el evento "storage" que sincronice la lista de lectura
-  window.addEventListener("storage", handleStorageChange);
+  useEffect(() => {
+    const storedReadingList = localStorage.getItem("readingList");
+    if (storedReadingList) {
+      setReadingList(JSON.parse(storedReadingList));
+    }
 
-  // Limpiar el listener al desmontar el componente
-  return () => {
-    window.removeEventListener("storage", handleStorageChange);
+    // Agregar un listener para el evento "storage" que sincronice la lista de lectura
+    window.addEventListener("storage", handleStorageChange);
+
+    // Limpiar el listener al desmontar el componente
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  // Función para sincronizar la lista de lectura con el almacenamiento local
+  const handleStorageChange = (event) => {
+    if (event.key === "readingList") {
+      setReadingList(JSON.parse(event.newValue));
+    }
   };
-}, []);
 
-// Función para sincronizar la lista de lectura con el almacenamiento local
-const handleStorageChange = (event) => {
-  if (event.key === "readingList") {
-    setReadingList(JSON.parse(event.newValue));
-  }
-};
+ 
 
-// Función para filtrar libros por género
-const filterBooksByGenre = (genre) => {
-  if (genre === "All") {
-    setFilteredBooks(library);
-  } else {
-    const filtered = library.filter((book) => book.book.genre === genre);
+  const filterBooks = (genre, name) => {
+    let filtered = library;
+  
+    // Filtrar por género si se seleccionó un género distinto de "All"
+    if (genre !== "All") {
+      filtered = filtered.filter((book) => book.book.genre === genre);
+    }
+  
+    // Filtrar por nombre de libro
+    filtered = filtered.filter((book) =>
+      book.book.title.toLowerCase().includes(name.toLowerCase())
+    );
+  
     setFilteredBooks(filtered);
-  }
-};
+  };
 
-useEffect(() => {
-  filterBooksByGenre(selectedGenre);
-}, [selectedGenre]);
+  useEffect(() => {
+    filterBooks(selectedGenre, searchTerm);
+  }, [selectedGenre, searchTerm]);
+  // Actualizar el estado de los libros con la propiedad "read" según su presencia en la lista de lectura
+  useEffect(() => {
+    const updatedLibrary = filteredBooks.map((book) => ({
+      ...book,
+      read: isBookInReadingList(book),
+    }));
+    setFilteredBooks(updatedLibrary);
 
-// Actualizar el estado de los libros con la propiedad "read" según su presencia en la lista de lectura
-useEffect(() => {
-  const updatedLibrary = filteredBooks.map((book) => ({
-    ...book,
-    read: isBookInReadingList(book),
-  }));
-  setFilteredBooks(updatedLibrary);
+    // Calculamos la cantidad de libros disponibles considerando los que están en la lista de lectura
+    const filteredAvailableBooks = filteredBooks.filter(
+      (book) => !isBookInReadingList(book)
+    );
+    setAvailableBooksCount(filteredAvailableBooks.length);
+  }, [readingList, filteredBooks]);
 
-  // Calculamos la cantidad de libros disponibles considerando los que están en la lista de lectura
-  const filteredAvailableBooks = filteredBooks.filter(
-    (book) => !isBookInReadingList(book)
-  );
-  setAvailableBooksCount(filteredAvailableBooks.length);
-}, [readingList, filteredBooks]);
+  // Función para agregar un libro a la lista de lectura
+  const addToReadingList = (book) => {
+    if (!readingList.some((item) => item.book.title === book.book.title)) {
+      const updatedList = [...readingList, book];
+      setReadingList(updatedList);
+      setAvailableBooksCount((prevCount) => prevCount - 1);
+      // Guardar la lista de lectura actualizada en el localStorage.
+      localStorage.setItem("readingList", JSON.stringify(updatedList));
+    }
+  };
 
-// Función para agregar un libro a la lista de lectura
-const addToReadingList = (book) => {
-  if (!readingList.some((item) => item.book.title === book.book.title)) {
-    const updatedList = [...readingList, book];
+  // Función para eliminar un libro de la lista de lectura
+  const removeFromReadingList = (book) => {
+    const updatedList = readingList.filter(
+      (item) => item.book.title !== book.book.title
+    );
     setReadingList(updatedList);
-    setAvailableBooksCount((prevCount) => prevCount - 1);
+    setAvailableBooksCount((prevCount) => prevCount + 1);
     // Guardar la lista de lectura actualizada en el localStorage.
     localStorage.setItem("readingList", JSON.stringify(updatedList));
-  }
-};
+  };
 
-// Función para eliminar un libro de la lista de lectura
-const removeFromReadingList = (book) => {
-  const updatedList = readingList.filter(
-    (item) => item.book.title !== book.book.title
-  );
-  setReadingList(updatedList);
-  setAvailableBooksCount((prevCount) => prevCount + 1);
-  // Guardar la lista de lectura actualizada en el localStorage.
-  localStorage.setItem("readingList", JSON.stringify(updatedList));
-};
+  // Función para verificar si un libro está en la lista de lectura
+  const isBookInReadingList = (book) => {
+    return readingList.some((item) => item.book.title === book.book.title);
+  };
 
-// Función para verificar si un libro está en la lista de lectura
-const isBookInReadingList = (book) => {
-  return readingList.some((item) => item.book.title === book.book.title);
-};
+  // Funciones para manejar el modal
+  const openModal = (book) => {
+    setSelectedBook(book);
+  };
 
-// Funciones para manejar el modal
-const openModal = (book) => {
-  setSelectedBook(book);
-};
-
-const closeModal = () => {
-  setSelectedBook(null);
-};
+  const closeModal = () => {
+    setSelectedBook(null);
+  };
 
   return (
     <main className="bg-white">
       <div className="flex p-8">
         <div className="w-3/4">
           <div className="px-4">
-            <h2 className="text-[#5ABD8C] text-2xl">
+            <h2 className="text-customGreen text-2xl">
               MIS LIBROS ({availableBooksCount})
             </h2>
+          </div>
+          {/* Nuevo componente de búsqueda */}
+          <div className="px-4 py-2 text-black">
+            <label htmlFor="searchInput" className="mr-2">
+              Buscar por nombre:
+            </label>
+            <input
+              type="text"
+              id="searchInput"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Escribe el nombre del libro..."
+            />
           </div>
 
           {/* Dropdown para seleccionar género */}
           <div className="px-4 py-2 text-black">
-            <label htmlFor="genreSelect" className="mr-2">
+            <label htmlFor="genreSelect" className="mr-2 text-zinc-600">
               Filtrar por género:
             </label>
             <select
               id="genreSelect"
               onChange={(e) => setSelectedGenre(e.target.value)}
               value={selectedGenre}
+              className="bg-customGreen text-white border-1 border-black rounded px-2 py-1 focus:outline-none"
             >
               <option value="All">Todos</option>
               <option value="Fantasía">Fantasía</option>
@@ -129,6 +152,8 @@ const closeModal = () => {
               <option value="Zombies">Zombies</option>
             </select>
           </div>
+
+          
 
           <div className="flex flex-wrap">
             {filteredBooks.map((book, index) => (
@@ -142,7 +167,7 @@ const closeModal = () => {
                     <img
                       src={book.book.cover}
                       alt={book.book.title}
-                      className={`w-full h-auto max-h-48 cursor-pointer shadow-2xl rounded-t-xl ${isBookInReadingList(book) ? "darken" : ""
+                      className={`w-full h-auto max-h-48 cursor-pointer shadow-customShadow rounded-t-xl ${isBookInReadingList(book) ? "darken" : ""
                         }`}
                       onClick={() => openModal(book)}
                     />
@@ -153,7 +178,7 @@ const closeModal = () => {
                             ? removeFromReadingList(book)
                             : addToReadingList(book)
                         }
-                        className="border border-[#5ABD8C] bg-[#5ABD8C] w-full hover:bg-white hover:text-[#5ABD8C] rounded-b-xl"
+                        className="border border-customGreen bg-customGreen w-full hover:bg-white hover:text-customGreen rounded-b-xl"
                       >
                         AGREGAR
                       </button>
@@ -178,7 +203,7 @@ const closeModal = () => {
         </div>
 
         <div className="w-1/4 border-l-2 border-zinc-400">
-          <h2 className="text-[#5ABD8C] text-2xl px-4">
+          <h2 className="text-customGreen text-2xl px-4">
             LIBROS LEIDOS ({readingList.length})
           </h2>
           {readingList.length > 0 ? (
