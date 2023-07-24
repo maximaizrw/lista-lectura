@@ -1,6 +1,6 @@
 import React from "react";
-import SearchInput from "./SearchInput";
-import GenreSelect from "./GenreSelect";
+import SearchInput from "./searchInput";
+import GenreSelect from "./genreSelect";
 
 const BookFilter = React.memo(({ selectedGenre, setSelectedGenre, searchTerm, setSearchTerm }) => {
   return (
