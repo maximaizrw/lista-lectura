@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import booksData from "./data/books.json";
-import Modal from "./components/Modal";
+import Modal from "./components/modal";
 import BookCard from "./components/bookCard";
 import BookFilter from "./components/bookFilter/bookFilter";
 import ReadingList from "./components/readingList";
